@@ -1,0 +1,66 @@
+---
+title: "My Simple Logistic Regression"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+<!-- Find some data of interest to you that can be analyzed with a logistic regression. Complete your Logistic Regression Analysis using this file. 
+
+Hint, run the command 
+
+> data() 
+
+in your Console to see available datasets in R that you could use for this Analysis. You are also welcome to collect data yourself, or find other available datasets online for this Analysis. Just be careful to not use anyone else's "analysis" for this Analysis. Also, no conducting surveys unless you have IRB approval to do so. -->
+
+```{r, include=FALSE}
+library(mosaic)
+library(car)
+library(pander)
+library(DT)
+library(plotly)
+library(prettydoc)
+NFL <- read.csv("../../Data/NFL.csv", header=TRUE)
+```
+## Background
+There are 32 teams, two conferences, and eight divisions in the NFL (with four teams in each division). Out of those 32, only 12 teams make the playoffs any given year. Each division winner is guaranteed a playoff spot (eight teams). The next four teams with the best record are also given a playoff spot (wildcard). Below is a table of all teams in 2018.
+```{r}
+datatable(NFL, colnames = c("Regular Season Wins" = 3, "Did They Make Playoffs?" = 4))
+```
+Typically, the more wins a team has, the more likely they are to go to the playoffs. We will use logistic regression to better predict this.
+
+## Analysis
+
+The logistic regression model is as follows:
+$$
+  P(Y_i = 1|\, x_i) = \frac{e^{\beta_0 + \beta_1 x_i}}{1+e^{\beta_0 + \beta_1 x_i}} = \pi_i
+$$
+The probability that $Y_i = 1$ given the observed value of $x_i$ is called $\pi_i$. In this case, $Y_i = 1$ is a Yes or No, or a binary response. The $x_i$ is the amount of regular season wins for any given team. The coefficents $\beta_0$ and $\beta_1$ are difficult to interpret directly. Instead, we will interpret $e^{\beta_0}$ and $e^{\beta_1}$. We will now run the regression.
+```{r}
+NFL.glm <- glm(Playoff == "Y" ~ Regular.Season.Wins, data = NFL)
+summary(NFL.glm)
+b <- NFL.glm$coefficients
+```
+Our updated model is as follows:
+$$
+  P(Y_i = 1|\, x_i) = \frac{e^{-0.77802 + 0.14526}}{1+e^{-0.77802 +  0.14526}} = \pi_i
+$$
+$b_0 = -0.77802$ is the value of the `(Intercept)` which estimates $\beta_0$ and $b_1 =  0.14526$ is the value of `Regular.Season.Wins` which estimates $\beta_1$. This formula can be hard to visualize, so we will display the plot below.
+```{r}
+plot( Playoff == "Y" ~ Regular.Season.Wins, data=NFL, ylab="Probability of Making the Playoffs", main='Probability of NFL Teams Making The Playoffs', xlab = "Regular Season Wins", pch=16)
+curve(exp(b[1] + b[2]*x)/(1 + exp(b[1] + b[2] * x)), add = TRUE)
+```
+
+## Diagnosing the Model
+In order to determine whether or not this model is appropriate, we must perform a **goodness of fit** test. 
+```{r}
+pchisq(2.0164, 30, lower.tail=FALSE)
+```
+Our $\alpha$ for this test was 0.05. Our null hypothesis for this test is that the regression model *is* a good fit for this data. Since our P-Value of 1 is greater than our $\alpha$, we can conclude that our model is indeed a good fit for the data.
+
+## Interpretation
+
+From this model we can see that a logistic regression is a good way to predict playoff probability based on regular season wins. I was, however, expecting a steeper curve for this regression. I assumed that if a team had five or fewer wins, their probability would be much less than 0.4. Alternatively, I assumed that a 10+ win team would have much more than a 0.6 probability. We can assume though, that the more wins a team has, the more likely they are to make the playoffs.
+
+

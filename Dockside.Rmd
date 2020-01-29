@@ -1,0 +1,79 @@
+---
+title: "Dockside"
+output: 
+  html_document:
+    theme : cerulean
+    code_folding: hide
+---
+
+<br>
+
+```{r setup, include=FALSE}
+library(mosaic)
+library(car)
+library(pander)
+library(DT)
+library(plotly)
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+Dockside <- read.csv("Data/Dockside.csv", header=TRUE)
+DocksideNew <- select(Dockside, c("Month", "Total.Sales", "Total.Salad.Bar")) %>% 
+  filter(!is.na(Total.Salad.Bar))
+colnames(datatable)
+```
+
+## Background
+
+I spent this last summer working at Dockside Restaurant in Coeur d'Alene, Idaho bussing tables to save money for college. I've been asked to consult with an actual company to see if I can answer a practical question using real data (for my intermediate statistics class). After reaching out to Dockside management, reviewing the data, and reflecting on my time spent working at the restaurant, I've decided to ask a question about their salad bar. My question is this: do amount of people served at the salad bar each month have a *significant* effect on total monthly sales. Since Dockside's salad bar is one of their most popular menu items, I think it would both interesting and illuminating to explore this question.
+
+## Analysis
+Below is a table displaying the total salad bars served and total monthly sales from January to October of this year (2019).
+```{r}
+datatable(DocksideNew, colnames = c("Total Sales" = 3, "Total Salad Bars" = 4))
+```
+
+
+In this scenario, we have two variables: total salad bars (explanatory) served and total monthly sales (response). Here's a scatterplot of the data.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+Dockside.lm <- lm(as.numeric(Total.Sales) ~ Total.Salad.Bar, data = DocksideNew)
+plot_ly(DocksideNew, x = ~Total.Salad.Bar, color = I("black"), text = ~Month) %>%
+  add_markers(y = ~Total.Sales, text = rownames(DocksideNew), showlegend = FALSE) %>%
+  layout(title = "Total Sales by Total Salad Bars", xaxis = list(title = 'Total Monthly Salad Bars'),
+         yaxis = list(title = 'Total Monthly Sales'),
+         legend = list(x = 0.80, y = 0.90)) %>%
+    add_lines(y = ~fitted(lm(Total.Sales ~ Total.Salad.Bar)),
+            line = list(color = '#07A4B5'),
+            name = "Loess Smoother", showlegend = TRUE)
+```
+
+We can see right away that there appears to be a strong positive trend between salad bars and sales, but we will perform a simple linnear regression to be sure. Our linear formula is as follows:
+$$
+  \underbrace{\hat{Y}_i}_\text{Total Monthly Sales} = \overbrace{b_0}^\text{est. y-int} + \overbrace{b_1}^\text{est. slope} \underbrace{X_i}_\text{Total Salad Bars}
+$$
+In this test we will be seing if $X_i$ is a good predictor of $\hat{Y}$.
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+Dockside.lm <- lm(as.numeric(Total.Sales) ~ Total.Salad.Bar, data = DocksideNew)
+pander(summary(Dockside.lm))
+```
+
+
+In this linear model, our coefficients represent the Y-intercept and the slope of our estimated regression line. This means that our $b_0 = 0.4818579$ (Y-intercept) and our $b_1 = 0.0028798$ (slope). Since we are running this test at a 95% confidence level, our $\alpha$, or level of significance, is 0.05. If we look at the p values of our coeffecients, we see that our Y-intercept appears to *not* be significantly different than zero, while our slope *is* significantly different than zero.
+
+## Interpretation
+
+From our linear regression we can confidently say that there is a positive relationship between total salad bars and total sales. In order to increase total sales, I would recommend placing an increased emphasis on increasing amount of salad bars as this should yield a significant increase in money brought in. This could be done by increasing the amount of options at the salad bars or different promotions for different days of the week.
+
+## Appropriateness of the Model
+In order to determine if the results from our test are valid, we must ensure that our linear regression requirements were met. We will do that with three diagnostic plots below. Since there seems to be outliers in the Q-Q plot and since the residuals vs. the fitted values appear to be non-linear, we must question the appropriateness of the regression model.
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+par(mfrow=c(1,3))
+plot(Dockside.lm, which=1:2)
+plot(Dockside.lm$residuals, main="Residuals vs Order", xlab="",
+     ylab="Residuals")
+```
+
+
